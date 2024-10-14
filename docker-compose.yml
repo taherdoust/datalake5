@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgis:
+    image: taherdoust/postgis_custom:v1  # Pre-configured PostGIS image
+    container_name: postgis
+    volumes:
+      - ./postgis_data:/var/lib/postgresql/data  # Persist PostGIS data
+    environment:
+      POSTGRES_DB: comet
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"  # PostGIS exposed on port 5433 to avoid conflicts
+    networks:
+      - webnet
+
+  geoserver:
+    image: taherdoust/geoserver_custom:v1  # Pre-configured GeoServer image
+    container_name: geoserver
+    volumes:
+      - ./geoserver_data:/opt/geoserver/data_dir  # Persist GeoServer config
+    environment:
+      GEOSERVER_ADMIN_USER: admin
+      GEOSERVER_ADMIN_PASSWORD: geoserver
+    ports:
+      - "8081:8080"  # GeoServer exposed on port 8081 to avoid conflicts
+    networks:
+      - webnet
+    depends_on:
+      - postgis
+
+  flask:
+    build: ./flask_app  # Build the Flask gateway service
+    container_name: flask
+    volumes:
+      - ./flask_app:/usr/src/app  # Mount Flask app code
+    environment:
+      POSTGIS_HOST: postgis
+      POSTGIS_DB: comet
+      POSTGIS_USER: postgres
+      POSTGIS_PASSWORD: postgres
+    ports:
+      - "5000:5000"  # Flask exposed on port 5000
+    networks:
+      - webnet
+
+networks:
+  webnet:
